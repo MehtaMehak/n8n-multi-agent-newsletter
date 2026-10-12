@@ -1,0 +1,64 @@
+{
+  "name": "Newsletter MCP Server",
+  "nodes": [
+    {
+      "parameters": {
+        "authentication": "bearerAuth",
+        "path": "9273c981-69b8-4f5e-8613-e3b66804465b"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "42b52472-4a32-40a5-bf04-190c046a3032",
+      "name": "MCP Server Trigger",
+      "webhookId": "9273c981-69b8-4f5e-8613-e3b66804465b"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Create a draft in Gmail for the newsletter. Input: subject and message (the full newsletter body).",
+        "resource": "draft",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', `The email subject line for the newsletter draft. Make it relevant to the newsletter topic.`, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `Write the complete newsletter body as plain text.\n\nUse only the research findings and source URLs provided by the Newsletter Agent.\n\nDo not use Markdown links, square brackets, parentheses around URLs, HTML, tables, or backslashes.\n\nWrite each source as a raw URL on its own line, beginning with https://.\n\nNever insert a line break inside a URL. Never append the next finding number or closing text to a URL.\n\nUse normal paragraphs and blank lines. Do not include the subject in the message body.\n\nIf only two verified findings are available, include only two findings and state that only two official sources were found. Do not invent a third finding.\n\nCreate a Gmail draft only. Never send the email.`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        96,
+        208
+      ],
+      "id": "beeada16-5af1-4f57-986f-c00d0aaef3fd",
+      "name": "Create Newsletter Draft",
+      "webhookId": "61b97d26-4a4d-43ce-9901-17af1459a2bf"
+    }
+  ],
+  "connections": {
+    "Create Newsletter Draft": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d3874572-8c13-4dba-8b56-2bb8e56aa53c",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "eSqXq9GcogqxJbiz",
+  "tags": []
+}

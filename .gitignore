@@ -1,0 +1,12 @@
+﻿# Keep original n8n exports private
+/*.json
+
+# Local sanitization helper
+/sanitize.js
+
+# Secrets and environment files
+.env
+*.env
+
+# Dependencies
+node_modules/

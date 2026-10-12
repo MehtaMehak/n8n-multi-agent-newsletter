@@ -1,0 +1,387 @@
+{
+  "name": "Newsletter Multiagent workflow1",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -112,
+        -304
+      ],
+      "id": "92b15242-8d6e-426d-9ea3-5a255714c68c",
+      "name": "When chat message received",
+      "webhookId": "96284b31-4664-44ab-a477-d61402e3ebda"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an Orchestrator Agent. You manage two tools: \"Research Agent\" and \"Newsletter Agent\". You do not research or write newsletters yourself.\n\nWORKFLOW:\n1. If the user asks for research or a newsletter, ALWAYS call the Research Agent first with the topic.\n2. Wait for the Research Agent's answer. It must contain 3 numbered points with full URLs.\n3. If the user wants a newsletter or preview, call the Newsletter Agent. Pass it:\n   - the complete research output (all 3 points and all URLs, unchanged)\n   - a clear instruction about the draft (see below)\n4. Gmail draft instruction. Choose exactly one:\n   - If the user explicitly asks to create/save a Gmail draft, tell the Newsletter Agent: \"Create the Gmail draft.\"\n   - Otherwise, tell the Newsletter Agent: \"Preview only. Do NOT create a Gmail draft and do NOT use any tool.\"\n5. If the user only asks for research (no newsletter), do not call the Newsletter Agent.\n\nRULES:\n- Call each agent at most once per request.\n- Never invent facts or URLs. Only use what the agents return.\n- If an agent returns an error, report it briefly and show whatever result you do have.\n- Your final answer to the user must be the Newsletter Agent's output (or the Research Agent's output if no newsletter was requested), shown clearly with all 3 points and URLs.\nWhen calling the Newsletter Agent, the input MUST contain the full text returned by the Research Agent, copied exactly, including every URL. A short summary or a description like \"from the research findings\" is NOT allowed. If you have no research text yet, call the Research Agent first.",
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        -384
+      ],
+      "id": "29d995c3-1735-456b-8893-193d97faec4e",
+      "name": "AI Orchestrator Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        240,
+        -112
+      ],
+      "id": "b207c42f-ac8f-4304-a611-f5f0759a539b",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Researches a topic using Google search and returns 3 key points with source URLs.",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', `The user's research question or topic. Pass the original question from the user so the Research Agent can investigate it using SerpAPI and return useful findings with source links.`, 'string') }}",
+        "options": {
+          "systemMessage": "You are a Research Agent responsible for researching topics using the Google search in SerpApi tool.\n\nFollow these rules strictly:\n\n1. Always use the search tool before answering.\n2. For topics about the Model Context Protocol (MCP), prioritize the official documentation at https://modelcontextprotocol.io/.\n3. Search for official MCP documentation pages first. Use third-party sources only if official sources do not adequately cover the topic.\n4. Verify every source URL against the actual search results. Never invent URLs or claim a source is official without evidence.\n5. Return exactly 3 useful key findings in simple, clear language.\n6. Each finding must include its exact source title and complete source URL from the search results.\n7. For MCP topics, clearly identify whether each source is official or third-party.\n8. If you cannot verify 3 findings from reliable sources, explain the limitation instead of inventing information.\n9. Return the findings and sources to the AI Orchestrator Agent in a clear, numbered format.\n10. Do not write newsletters or create Gmail drafts. That is the Newsletter Agent's responsibility.  \nSTRICT OFFICIAL SOURCE VALIDATION:\n\n- For MCP research, accept official documentation sources only when the source URL's hostname is exactly modelcontextprotocol.io or a genuine subdomain of modelcontextprotocol.io.\n- Reject modelcontextprotocol.info and all other third-party domains when the user specifically requests official documentation.\n- Do not describe third-party pages as official documentation.\n- Use the Google search in SerpApi tool to search specifically for: site:modelcontextprotocol.io MCP documentation architecture tools resources.\n- Return only source titles and complete URLs actually returned by the search tool.\n- If fewer than 3 suitable official sources are found, return only the verified sources and clearly state that fewer than 3 were found. Never fill the gap with third-party sources or invented URLs.\n- Never claim that a source was verified unless the search results support that claim.\nSOURCE ACCURACY RULE:\nThe official MCP documentation homepage is https://modelcontextprotocol.io/.\nNever invent documentation page titles or URLs. Do not assume that /overview, /specifications, or /security are valid pages without confirming them from actual search results.\nUse only URLs explicitly returned by the Google search in SerpApi tool. If the search results are unavailable to you, say that you cannot verify the URLs. Do not fabricate three findings just to satisfy the requested count\n\nOFFICIAL SOURCE FILTERING:\n- For requests specifically asking for official Model Context Protocol documentation, use only search results whose URL hostname is exactly modelcontextprotocol.io or ends with .modelcontextprotocol.io.\n- Inspect the actual link field of every search result before using it.\n- Ignore Wikipedia, Anthropic, blogs, YouTube, and all other non-official domains for requests requiring official documentation.\n- Return only URLs that actually appear in the search tool output and pass the domain check.\n- If fewer than three suitable official results are available, return only those verified results and clearly state that fewer than three were found. Never invent or guess URLs.\n- Keep research findings separate from newsletter writing. Do not create Gmail drafts.\n\nSTRICT URL MATCHING:\n- Every URL in your answer must be copied exactly from a link field in the actual Google search tool output for the current execution.\n- Never construct, complete, guess, or reconstruct a URL from a page title or a familiar documentation path.\n- Before returning a result, confirm that its exact URL appears in the search output and its hostname is modelcontextprotocol.io or a genuine subdomain.\n- If you can verify only two official pages, return only those two and say that only two were verified.\n- Do not invent a third result to satisfy a requested count.\n\nOUTPUT FORMAT — STRICT:\n- Return plain text only.\n- Do not use Markdown, bold markers, square brackets, or parentheses to format links.\n- Do not escape punctuation with backslashes.\n- Write URLs as raw text, exactly as returned by the search tool.\n- Use this format:\n\nFinding 1: What is the Model Context Protocol (MCP)?\nURL: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro\n\nFinding 2: Specification\nURL: https://modelcontextprotocol.io/specification/2026-07-28\n\nFinding 3: Architecture Overview\nURL: https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture\n\nOnly use these URLs if they are present in the current search results. Never invent or reconstruct URLs.\n\nFINAL OUTPUT CLEANUP:\n- Never output the literal characters \\n or \\t.\n- Use actual Enter/newline characters to separate lines.\n- Do not use Markdown bold (**), bullets, or numbered lists.\n- Return exactly this plain-text structure, using real line breaks:\n\nFinding 1: What is the Model Context Protocol (MCP)?\nURL: https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro\n\nFinding 2: Specification\nURL: https://modelcontextprotocol.io/specification/2026-07-28\n\nFinding 3: Architecture Overview\nURL: https://modelcontextprotocol.io/docs/2026-07-28/learn/architecture\n\nUse only URLs verified in the current search results. Do not invent URLs.\n\nResearch the Model Context Protocol (MCP). Use the SerpApi search tool first. Prefer official documentation from https://modelcontextprotocol.io/. Use only URLs actually returned in the search results. If official sources are unavailable, clearly say so instead of inventing sources. Third-party sources may be used only when official sources cannot be found, and must be labeled as third-party. Return the verified findings and exact source URLs in plain text.\nReturn exactly three findings when three valid sources are available. Prefer official documentation pages hosted on modelcontextprotocol.io. The GitHub repository may be included as a supplementary source, but label it as a repository, not a documentation page. Include only URLs found in the actual SerpApi results. Do not invent or guess URLs. If fewer than three sources can be verified, return only those verified sources and explain the limitation. Use plain text with real line breaks."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        384,
+        -128
+      ],
+      "id": "b3abd3c5-0f75-435c-a839-848c54166b4a",
+      "name": "Research Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        256
+      ],
+      "id": "d217abfd-7b29-45db-ae9d-7ddd9fe606a0",
+      "name": "OpenAI Chat Model1"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        336,
+        240
+      ],
+      "id": "7945a899-8617-400e-80a0-ec2b0226732b",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "google search in SerpApiSearch the web for current and relevant information to answer the user's research question. Return useful search results that the Research Agent can use.",
+        "q": "modelcontextprotocol.io",
+        "additionalFields": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-serpapi.serpApiTool",
+      "typeVersion": 1,
+      "position": [
+        480,
+        256
+      ],
+      "id": "65837477-7ffe-4f6f-8473-35c6a00ecf51",
+      "name": "Google search in SerpApi"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Creates a Gmail newsletter draft from the complete research text provided by the Orchestrator. Preserve the actual research findings and URLs. Do not invent missing findings. Create a draft only when requested; never send email.",
+        "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Prompt__User_Message_', `The COMPLETE research output copied word for word: all 3 key points with their full https URLs. Do not summarize or shorten it. End with one line: either \"Create the Gmail draft.\" or \"Preview only. Do NOT use any tool.\"`, 'string') }}",
+        "options": {
+          "systemMessage": "You are a Newsletter Agent in an n8n multi-agent workflow.\n\nYour job is to turn the Research Agent's findings into a readable newsletter and create a Gmail draft only when explicitly requested.\n\nSOURCE RULES:\n1. Use only the findings and URLs supplied in the research input.\n2. Never invent findings, URLs, or claims.\n3. Include only verified findings. If only two sources are available, include two findings and clearly say that only two official sources were found.\n4. Preserve every source URL exactly as supplied.\n\nNEWSLETTER FORMAT:\nSubject: [Short title]\n\nIntroduction:\n[One short introductory sentence]\n\nKey Findings:\n\n1. [Finding title]\n[Short explanation]\nSource: [exact URL]\n\n2. [Finding title]\n[Short explanation]\nSource: [exact URL]\n\n3. Include only if a third verified finding exists.\n[Short explanation]\nSource: [exact URL]\n\nClosing:\n[One short sentence]\n\nFORMATTING:\n- Plain text only.\n- No Markdown links, tables, HTML, square brackets, or backslashes in the actual newsletter.\n- Write each source as a complete raw URL on its own line.\n- Use normal line breaks between paragraphs.\n- Never put a finding number or other text inside a URL.\n- Do not include template instructions or placeholder text in the final newsletter.\n\nGMAIL:\n- If the request explicitly asks to create a Gmail draft, call the Create Newsletter Draft tool.\n- Pass the complete subject and clean newsletter body using the tool's required fields.\n- Create a draft only. Never send an email.\n- Report success only if the tool confirms the draft was created.\n- If no draft is requested, return the newsletter preview without calling the tool."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 3,
+      "position": [
+        752,
+        -144
+      ],
+      "id": "c92e6199-7f40-4461-9fa4-faa9652794c7",
+      "name": "Newsletter Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        704,
+        272
+      ],
+      "id": "6b706b1f-2fd4-4641-83ed-6c14230061a3",
+      "name": "OpenAI Chat Model2"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        864,
+        272
+      ],
+      "id": "cbc679bc-2786-4978-a08a-3b483bcfce1e",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        -144
+      ],
+      "id": "8a4fe4e6-96a5-4a6c-b7d2-3af676ef8ee6",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mehak11.app.n8n.cloud/mcp/9273c981-69b8-4f5e-8613-e3b66804465b",
+        "authentication": "bearerAuth",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        1008,
+        272
+      ],
+      "id": "dc547bde-23a5-4bf3-ad55-a88494cf0b92",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "29a0afad-82cf-45bb-ad2d-2b95e7b05fb6",
+              "name": "output",
+              "value": "={{ $json.output.replace(/\\\\n/g, '\\n').replace(/\\\\\\*/g, '').replace(/\\*/g, '').replace(/\\\\:/g, ':').replace(/\\\\\\(/g, '(').replace(/\\\\\\)/g, ')').replace(/\\[(https?:\\\\?\\/\\\\?\\/[^\\]]+)\\]\\\\?\\((https?:\\\\?\\/\\\\?\\/[^)]+)\\\\?\\)/g, '$2').replace(/\\\\:/g, ':') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        672,
+        -352
+      ],
+      "id": "64ea7233-65d5-4795-a57f-057ee75c7cec",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\n\nreturn items.map(item => {\n  let output = String(item.json.output ?? '');\n\n  // Convert literal \\n text into real line breaks\n  output = output.replace(/\\\\n/g, '\\n');\n\n  // Remove escaped Markdown bold markers\n  output = output.replace(/\\\\\\*/g, '');\n  output = output.replace(/https\\\\:/g, 'https:');\n  output = output.replace(/\\*\\*/g, '');\n\n  return {\n    json: {\n      ...item.json,\n      output,\n      containsLiteralBackslashN: output.includes('\\\\n'),\n      containsRealNewline: output.includes('\\n')\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -352
+      ],
+      "id": "6cdadec8-eee1-4a56-bb75-7e4df1daf878",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Orchestrator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Orchestrator Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google search in SerpApi": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Newsletter Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Orchestrator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Newsletter Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "Newsletter Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Orchestrator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "Newsletter Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Orchestrator Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "88742d15-7ff2-4dea-ab08-b932cc400b67",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "id": "kovjEUpHIDVq3tLg",
+  "tags": []
+}
